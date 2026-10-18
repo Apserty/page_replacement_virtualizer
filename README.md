@@ -1,137 +1,155 @@
-<<<<<<< HEAD
 # The Hyper-Visual Virtual Memory & Page Replacement Virtualizer
 
-> An interactive, educational web application for visualizing virtual memory management, demand paging, and page replacement algorithms.
+> An interactive, high-fidelity educational simulation and pedagogical audio platform for Operating Systems. Explores demand paging, memory frames allocation, and page replacement strategies with structured step explanations, speech narration, and real-time performance analytics.
 
 ---
 
-## 1. Project Objective
+## Overview
 
-The objective of **The Hyper-Visual Virtual Memory & Page Replacement Virtualizer** is to help computer science students, educators, and systems developers intuitively understand how operating systems manage virtual memory. Through step-by-step visualizations, users can observe page hits, page faults, and victim frame replacements across core replacement strategies: **FIFO (First-In, First-Out)**, **LRU (Least Recently Used)**, and **Optimal (Belady's Algorithm)**.
-
----
-
-## 2. Technology Stack
-
-- **Markup:** HTML5 (Semantic elements, accessible ARIA attributes)
-- **Styling:** CSS3 (Modern dashboard design system, custom properties, responsive layout, projector-ready light theme)
-- **Scripting:** Vanilla JavaScript (ES Modules, standard event-driven architecture, zero third-party framework dependencies)
-- **Icons & Assets:** Native SVG (`assets/favicon.svg`)
-- **Testing:** Vanilla Node.js automated test runner (`tests/algorithms.test.js`)
+**The Hyper-Visual Virtual Memory & Page Replacement Virtualizer** is designed to provide computer science students, instructors, and systems engineers with an intuitive, deep-dive understanding of virtual memory management. The platform simulates demand paging across configurable reference sequences and physical memory frame counts, visualizing hit/fault transitions, replacement victims, and cache metrics in real time.
 
 ---
 
-## 3. Project File Structure
+## Core Capabilities & Features
 
-```text
+### 1. Page Replacement Algorithms
+- **FIFO (First-In, First-Out):** Replaces the resident page that arrived earliest in physical memory, managed via an arrival queue.
+- **LRU (Least Recently Used):** Replaces the page that has not been referenced for the longest period of time, leveraging access timestamps.
+- **Optimal (Belady's Min Algorithm):** Inspects future page requests across the remaining reference sequence to evict the page that will not be used for the longest time (or never again), achieving theoretical minimum fault rates.
+
+### 2. Dark Matrix Memory Visualization
+- **Frame-by-Frame Timeline Grid:** Displays the physical memory snapshot for every step in the reference sequence.
+- **State Classification:**
+  - **Page Hit / Initial Load:** Highlighted in emerald green.
+  - **Page Fault (Replacement Required):** Highlighted in amber orange.
+  - **Resident (Unchanged):** Displayed in deep dark matrix slots.
+- **Interactive Time-Travel Inspection:** Click or navigate to any historical step on the matrix grid to inspect past memory states without corrupting active simulation state.
+- **Sticky Slot Headers:** Memory frame indicators (`F0`, `F1`, `F2`...) remain pinned on the left during horizontal scrolling.
+
+### 3. Integrated Audio Tutor
+- **Web Speech Synthesis Engine:** Real-time pedagogical audio narration of simulation events.
+- **Default Narration Voice:** Prioritizes **Microsoft Neerja Online (Natural) - English (India) (`en-IN`)**, with automatic fallback to natural English voices.
+- **Narration Controls:**
+  - **Play / Pause / Resume / Stop / Replay:** Granular control over the current step's voice explainer.
+  - **Narrate All Steps:** Automated sequential voice walkthrough across the entire reference string.
+  - **Speed Selector:** Configurable narration rate (`0.75x`, `0.92x`, `1.0x (Default)`, `1.25x`, `1.5x`).
+  - **Interruption Safety:** Handles button clicks, manual stepping, and cancellation without double-stepping or state desynchronization.
+
+### 4. Structured Pedagogical Explanations
+Every simulation transition generates a beginner-friendly explanation divided into logical sections:
+- **Event Header & Badge:** `PAGE HIT`, `PAGE FAULT — EMPTY FRAME AVAILABLE`, or `PAGE FAULT — PAGE REPLACEMENT REQUIRED`.
+- **What Happened?:** Describes CPU reference requests and memory presence.
+- **Current Memory State:** Formats pre-event frame contents in clear English.
+- **Why Did This Happen?:** Explains the underlying trigger of the hit or fault.
+- **Algorithm Decision:** Explains specific replacement criteria (earliest arrival, least recent access, or furthest future reuse).
+- **Action Taken:** Details loaded, removed, and resident pages.
+- **Updated Memory:** Resulting memory state after the request.
+- **Separated Audio Narration:** Conversational, punctuation-safe spoken English (e.g., *"Step 2, Page 0, It is Page Fault Because Empty Frame is available..."*).
+
+### 5. Production Dual-Engine Architecture
+- **Backend Mode (Python / Flask):** High-performance simulation server providing REST API endpoints (`/api/simulate`, `/api/step`, `/api/status`).
+- **Client-Side Fallback (Vanilla ES6):** In-browser simulation engine providing identical algorithmic accuracy offline without server dependency.
+- **Automatic Health Sensing:** The UI continuously monitors and reports connection status via dynamic engine badges.
+
+### 6. Universal Device Responsiveness
+- **Cross-Device Optimization:** Full responsiveness across mobile phones (down to 320px), tablets, laptops, and ultra-wide displays.
+- **Touch-Friendly Controls:** Optimized touch targets (minimum 42px), momentum horizontal scrolling (`-webkit-overflow-scrolling: touch`), and adaptive toolbar grids.
+
+---
+
+## Production Architecture & System Structure
+
+```
 virtual-memory-virtualizer/
-├── assets/
-│   └── favicon.svg           # Custom SVG icon representing RAM frames & page slots
+├── server.py                 # Production Flask server & API routing
+├── algorithms.py             # Python engine (FIFO, LRU, Optimal & explanation generator)
+├── index.html                # Semantic, accessible HTML5 dashboard interface
 ├── css/
-│   └── style.css             # Main stylesheet (clean navy/blue theme, hit/fault badges, responsive grid)
+│   └── style.css             # Comprehensive design system, dark matrix, and responsive media queries
 ├── js/
-│   ├── algorithms.js         # Pure simulation logic and interfaces (FIFO, LRU, Optimal)
-│   ├── visualizer.js         # DOM rendering functions (frames, reference stream, statistics)
-│   └── app.js                # Application controller, input validation, and playback orchestration
+│   ├── app.js                # Application controller, event orchestration, and state machine
+│   ├── algorithms.js         # Client-side JavaScript algorithmic simulation engine
+│   ├── explanations.js       # Structured explanation cards & natural speech text generator
+│   ├── audioTutor.js         # Web Speech API audio controller & voice prioritization
+│   └── visualizer.js         # Memory frame matrix renderer, statistics, and DOM binder
+├── assets/
+│   └── favicon.svg           # High-resolution SVG hardware brand mark
 ├── tests/
-│   └── algorithms.test.js    # Automated unit and interface test suite
-├── index.html                # Main application interface and educational guide
-├── package.json              # ES module configuration and test script definition
-└── README.md                 # Project documentation and user guide
+│   └── algorithms.test.js    # Automated 22-test validation suite
+└── package.json              # Project metadata and test configuration
 ```
 
 ---
 
-## 4. Setup and Run Instructions
+## API Reference (Server Endpoints)
 
-Because the project uses native JavaScript ES Modules (`import`/`export`), it should be served via a local web server rather than opening `index.html` via the `file://` protocol.
+### `GET /api/status`
+Health check endpoint reporting backend availability and supported algorithms.
 
-### Option A: Using Python (Recommended)
+**Response:**
+```json
+{
+  "status": "online",
+  "backend": "Python Flask",
+  "supportedAlgorithms": ["FIFO", "LRU", "OPTIMAL"]
+}
+```
 
-1. Open a terminal and navigate to the project directory:
-   ```bash
-   cd "virtual-memory-virtualizer"
-   ```
-2. Start Python's built-in HTTP server:
-   ```bash
-   python -m http.server 8000
-   ```
-3. Open your browser and navigate to:
-   ```
-   http://localhost:8000/
-   ```
+### `POST /api/simulate`
+Executes full page replacement simulation for a given configuration.
 
-### Option B: Using Node.js `npx serve` or `http-server`
+**Request Payload:**
+```json
+{
+  "algorithm": "FIFO",
+  "referenceString": [7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2],
+  "frameCount": 3
+}
+```
 
-1. In the project directory:
-   ```bash
-   npx serve .
-   ```
-   or
-   ```bash
-   npx -y http-server -p 8000
-   ```
-2. Navigate to the displayed local URL (e.g. `http://localhost:8000`).
+**Response Payload:**
+```json
+{
+  "algorithm": "FIFO",
+  "referenceString": [7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2],
+  "frameCount": 3,
+  "totalRequests": 13,
+  "totalHits": 3,
+  "totalFaults": 10,
+  "hitRatio": 23.08,
+  "faultRatio": 76.92,
+  "steps": [ ... ]
+}
+```
 
 ---
 
-## 5. Automated Testing Instructions
+## Quality Assurance & Verification
 
-Run the automated test suite directly using Node.js:
+The platform includes an automated regression test suite ensuring complete mathematical and behavioral parity across both Python and JavaScript implementations:
 
-```bash
-cd "virtual-memory-virtualizer"
-node tests/algorithms.test.js
 ```
-or
-```bash
-npm test
-```
+Test Suites:
+  [✓] Module structure & export interface integrity
+  [✓] Input parser delimiters (commas, spaces, semicolons, invalid tokens)
+  [✓] Benchmark verification on standard reference strings (FIFO, LRU, Optimal)
+  [✓] Immediate hit, initial load, and eviction edge cases
+  [✓] 8-Section explanation structure & audio narration formatting
+  [✓] Audio Tutor voice prioritization (Microsoft Neerja / en-IN priority)
+  [✓] Deterministic step history & single-frame boundaries
 
-### Test Scope:
-- Verification of exported simulation interfaces (`simulateFIFO`, `simulateLRU`, `simulateOptimal`, `runPageReplacement`).
-- Input validation and parsing of reference strings (handling delimiters, edge cases, negative numbers).
-- Pre-configured test cases for Phase 2 algorithm verification against standard reference strings:
-  `7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2` with 3 frames.
+Results: 22 passed | 0 failed
+```
 
 ---
 
-## 6. Planned Features (Phased Roadmap)
+## System Requirements
 
-- **Phase 1 (Completed):** Clean project structure, UI layout foundation, control panel, responsive styling, SVG favicon, and automated test suite.
-- **Phase 2:** Implementation of core page replacement algorithms (FIFO queue, LRU access stack/timestamps, and Optimal future-reference lookahead).
-- **Phase 3:** Interactive step-by-step playback, real-time memory frame animations, and dynamic decision explanations.
-- **Phase 4:** Belady's Anomaly demonstrator and multi-algorithm comparison matrix with performance graphs.
-=======
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fvercel%2Ftree%2Fmain%2Fexamples%2Fflask&demo-title=Flask%20API&demo-description=Use%20Flask%20API%20on%20Vercel%20with%20Serverless%20Functions%20using%20the%20Python%20Runtime.&demo-url=https%3A%2F%2Fvercel-plus-flask.vercel.app%2F&demo-image=https://assets.vercel.com/image/upload/v1669994600/random/python.png)
+- **Client Runtime:** Modern web browser supporting ES6 Modules and the Web Speech API (Chrome, Edge, Safari, Firefox).
+- **Server Runtime:** Python 3.10+ with Flask (for backend API mode), or static web hosting for standalone client mode.
 
-# Flask + Vercel
+---
 
-This example shows how to use Flask on Vercel with Serverless Functions using the [Python Runtime](https://vercel.com/docs/concepts/functions/serverless-functions/runtimes/python).
+## License
 
-## Demo
-
-https://vercel-plus-flask.vercel.app/
-
-## How it Works
-
-This example uses the Web Server Gateway Interface (WSGI) with Flask to handle requests on Vercel with Serverless Functions.
-
-## Running Locally
-
-```bash
-npm i -g vercel
-python -m venv .venv
-source .venv/bin/activate
-uv sync  # or alternatively pip install flask gunicorn
-gunicorn main:app
-```
-
-Your Flask application is now available at `http://localhost:3000`.
-
-## One-Click Deploy
-
-Deploy the example using [Vercel](https://vercel.com?utm_source=github&utm_medium=readme&utm_campaign=vercel-examples):
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fvercel%2Ftree%2Fmain%2Fexamples%2Fflask&demo-title=Flask%20API&demo-description=Use%20Flask%20API%20on%20Vercel%20with%20Serverless%20Functions%20using%20the%20Python%20Runtime.&demo-url=https%3A%2F%2Fvercel-plus-flask.vercel.app%2F&demo-image=https://assets.vercel.com/image/upload/v1669994600/random/python.png)
->>>>>>> c8ed70fc159f8d8213872f345fd90913cd53c948
+Developed for educational and academic instructional use in Principles of Operating Systems coursework.

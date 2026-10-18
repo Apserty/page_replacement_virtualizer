@@ -991,3 +991,414 @@ body {
   line-height: 1.55;
 }
 
+/* ==========================================================================
+   Comprehensive Responsive Media Queries
+   Device Targets: Laptops (1024px-1280px), Tablets (768px-1024px),
+   Mobile Large (481px-767px), Mobile Small (<=480px)
+   ========================================================================== */
+
+/* Tablet & Smaller Laptops (<= 1024px) */
+@media (max-width: 1024px) {
+  .main-layout {
+    padding: 1.25rem 1rem;
+    gap: 1.25rem;
+  }
+
+  .vis-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .controls-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .controls-grid .form-group:first-child {
+    grid-column: span 2;
+  }
+
+  .matrix-scroll-wrapper {
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .educational-section {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+}
+
+/* Tablets & Large Phones (<= 768px) */
+@media (max-width: 768px) {
+  .header-container {
+    padding: 0.85rem 1rem;
+    gap: 0.75rem;
+  }
+
+  .brand-section {
+    gap: 0.65rem;
+  }
+
+  .brand-logo {
+    width: 38px;
+    height: 38px;
+  }
+
+  .app-title {
+    font-size: 1.1rem;
+    line-height: 1.3;
+  }
+
+  .app-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .nav-links {
+    width: 100%;
+    justify-content: flex-start;
+    padding-top: 0.35rem;
+    border-top: 1px solid var(--border-color-light);
+  }
+
+  .card {
+    padding: 1.25rem 1rem;
+    border-radius: var(--radius-md);
+  }
+
+  .controls-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .controls-grid .form-group:first-child,
+  .controls-grid .form-group[style*="grid-column: span 2"] {
+    grid-column: span 1 !important;
+  }
+
+  .toolbar-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .toolbar-container .button-group {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .toolbar-container .button-group .btn {
+    flex: 1 1 calc(50% - 0.5rem);
+    min-height: 40px;
+    text-align: center;
+    font-size: 0.825rem;
+    padding: 0.5rem 0.65rem;
+  }
+
+  .toolbar-container .button-group:last-child {
+    width: 100%;
+  }
+
+  .toolbar-container .button-group:last-child .btn-danger {
+    width: 100%;
+    min-height: 40px;
+  }
+
+  /* Audio Tutor Responsive Controls */
+  .audio-tutor-toolbar {
+    padding: 0.75rem;
+  }
+
+  .audio-tutor-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .audio-settings-group {
+    display: flex;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .audio-settings-group .audio-select {
+    flex: 1;
+    max-width: none;
+    height: 36px;
+  }
+
+  .audio-settings-group .audio-speed-select {
+    flex: 0 0 95px;
+    max-width: 95px;
+  }
+
+  .audio-tutor-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.6rem;
+  }
+
+  .audio-tutor-actions .button-group {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 0.4rem;
+  }
+
+  .audio-tutor-actions .button-group .btn {
+    flex: 1 1 calc(33.333% - 0.4rem);
+    min-height: 38px;
+    font-size: 0.75rem;
+    padding: 0.4rem 0.5rem;
+  }
+
+  #btn-audio-narrate-all {
+    width: 100%;
+    min-height: 38px;
+  }
+
+  /* Statistics Grid */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem;
+  }
+
+  .stat-card {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .stat-value {
+    font-size: 1.45rem;
+  }
+
+  /* Memory Matrix Card */
+  .memory-frames-card {
+    padding: 1.15rem 0.75rem;
+  }
+
+  .matrix-title {
+    font-size: 1.15rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .matrix-legend {
+    gap: 0.85rem;
+    font-size: 0.75rem;
+    justify-content: flex-start;
+  }
+
+  /* Educational Section */
+  .educational-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile Screens (<= 480px) */
+@media (max-width: 480px) {
+  html {
+    font-size: 15px;
+  }
+
+  .main-layout {
+    padding: 0.75rem 0.5rem;
+    gap: 1rem;
+  }
+
+  .header-container {
+    padding: 0.75rem 0.65rem;
+  }
+
+  .brand-logo {
+    width: 32px;
+    height: 32px;
+  }
+
+  .app-title {
+    font-size: 0.98rem;
+  }
+
+  .app-subtitle {
+    font-size: 0.75rem;
+  }
+
+  .header-badge {
+    padding: 0.25rem 0.55rem;
+    font-size: 0.7rem;
+  }
+
+  .card {
+    padding: 1rem 0.75rem;
+  }
+
+  .card-title {
+    font-size: 1rem;
+  }
+
+  .card-subtitle {
+    font-size: 0.8rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .form-input, .form-select {
+    font-size: 0.85rem;
+    padding: 0.55rem 0.7rem;
+  }
+
+  .toolbar-container .button-group .btn {
+    flex: 1 1 100%;
+    font-size: 0.825rem;
+    min-height: 42px;
+  }
+
+  .stream-display-box {
+    padding: 0.75rem 0.5rem;
+    min-height: 75px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Memory Matrix Touch Optimization */
+  .memory-frames-card {
+    padding: 0.85rem 0.5rem;
+    border-radius: var(--radius-md);
+  }
+
+  .matrix-title {
+    font-size: 1.05rem;
+  }
+
+  .matrix-header-cell,
+  .matrix-cell {
+    width: 38px;
+    height: 38px;
+    font-size: 0.95rem;
+  }
+
+  .matrix-ref-cell {
+    width: 38px;
+    height: 24px;
+    font-size: 0.75rem;
+  }
+
+  .matrix-status-cell {
+    width: 38px;
+    height: 20px;
+    font-size: 0.65rem;
+  }
+
+  .matrix-legend {
+    gap: 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  /* Stats Grid on Small Mobile */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .stat-card {
+    padding: 0.65rem 0.4rem;
+  }
+
+  .stat-card:last-child {
+    grid-column: span 2;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .stat-label {
+    font-size: 0.68rem;
+  }
+
+  /* Audio Tutor on Small Mobile */
+  .audio-tutor-actions .button-group .btn {
+    flex: 1 1 calc(50% - 0.4rem);
+    font-size: 0.725rem;
+  }
+
+  .explanation-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.35rem;
+  }
+
+  .step-title-text {
+    font-size: 0.925rem;
+  }
+
+  .expl-section {
+    padding: 0.5rem 0.65rem;
+  }
+
+  .expl-label {
+    font-size: 0.68rem;
+  }
+
+  .expl-text {
+    font-size: 0.825rem;
+    line-height: 1.45;
+  }
+}
+
+/* Very Small Screens (<= 360px) */
+@media (max-width: 360px) {
+  .header-container {
+    padding: 0.65rem 0.5rem;
+  }
+
+  .app-title {
+    font-size: 0.9rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card:last-child {
+    grid-column: span 1;
+  }
+
+  .audio-tutor-actions .button-group .btn {
+    flex: 1 1 100%;
+  }
+
+  .matrix-header-cell,
+  .matrix-cell {
+    width: 34px;
+    height: 34px;
+    font-size: 0.85rem;
+  }
+
+  .matrix-ref-cell {
+    width: 34px;
+    height: 22px;
+  }
+
+  .matrix-status-cell {
+    width: 34px;
+    height: 18px;
+    font-size: 0.6rem;
+  }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .btn, .form-select, .form-input {
+    touch-action: manipulation;
+  }
+
+  .matrix-col {
+    padding: 2px 0;
+  }
+
+  .btn:active {
+    transform: scale(0.98);
+  }
+
+  .nav-link {
+    padding: 0.5rem 0.85rem;
+  }
+}
+
