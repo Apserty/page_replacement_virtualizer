@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="The Hyper-Visual Virtual Memory & Page Replacement Virtualizer - Learn OS virtual memory algorithms interactively with step-by-step visual demonstrations.">
+  <title>The Hyper-Visual Virtual Memory &amp; Page Replacement Virtualizer</title>
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Header Section -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-section">
+        <img src="assets/favicon.svg" alt="Memory Chip Icon" class="brand-logo" width="44" height="44">
+        <div class="brand-titles">
+          <h1 class="app-title">The Hyper-Visual Virtual Memory &amp; Page Replacement Virtualizer</h1>
+          <p class="app-subtitle">Learn virtual memory through interactive page replacement.</p>
+        </div>
+      </div>
+      <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+        <span class="header-badge">OS Educational Lab</span>
+        <span id="engine-badge" class="header-badge" style="background-color: #ecfdf5; color: #065f46; border-color: #a7f3d0;">
+          <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background-color: #10b981; margin-right: 4px;"></span>
+          <span id="engine-status-text">Client Engine Active</span>
+        </span>
+      </div>
+      <nav class="nav-links" aria-label="Page Navigation">
+        <a href="#simulator-section" class="nav-link active">Simulator</a>
+        <a href="#learning-section" class="nav-link">Algorithm Guide</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Layout -->
+  <main class="main-layout" id="simulator-section">
+    <!-- Configuration & Simulation Controls -->
+    <section class="card" aria-labelledby="config-title">
+      <h2 id="config-title" class="card-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        Simulation Configuration
+      </h2>
+      <p class="card-subtitle">Set up the reference string and frame parameters to visualize page replacements.</p>
+
+      <form id="simulation-config-form" onsubmit="return false;">
+        <div class="controls-grid">
+          <!-- Reference String Input -->
+          <div class="form-group" style="grid-column: span 2;">
+            <label for="reference-string-input" class="form-label">
+              <span>Page Reference String</span>
+              <span class="form-hint">Comma or space-separated integers</span>
+            </label>
+            <input 
+              type="text" 
+              id="reference-string-input" 
+              class="form-input font-mono" 
+              value="7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2" 
+              placeholder="e.g. 7, 0, 1, 2, 0, 3, 0, 4, 2, 3, 0, 3, 2"
+              autocomplete="off"
+              spellcheck="false"
+              required
+            >
+          </div>
+
+          <!-- Frame Count Selector -->
+          <div class="form-group">
+            <label for="frame-count-select" class="form-label">
+              <span>Page Frames</span>
+              <span class="form-hint">Physical memory slots</span>
+            </label>
+            <select id="frame-count-select" class="form-select">
+              <option value="1">1 Frame</option>
+              <option value="2">2 Frames</option>
+              <option value="3" selected>3 Frames (Default)</option>
+              <option value="4">4 Frames</option>
+              <option value="5">5 Frames</option>
+              <option value="6">6 Frames</option>
+              <option value="7">7 Frames</option>
+            </select>
+          </div>
+
+          <!-- Algorithm Selector -->
+          <div class="form-group">
+            <label for="algorithm-select" class="form-label">
+              <span>Replacement Algorithm</span>
+              <span class="form-hint">Strategy policy</span>
+            </label>
+            <select id="algorithm-select" class="form-select">
+              <option value="FIFO" selected>FIFO (First-In, First-Out)</option>
+              <option value="LRU">LRU (Least Recently Used)</option>
+              <option value="OPTIMAL">Optimal (Belady's Min)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Simulation Toolbar -->
+        <div class="toolbar-container">
+          <div class="button-group">
+            <button type="button" id="btn-start" class="btn btn-primary" title="Initialize the simulation with the specified parameters">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+              Start Simulation
+            </button>
+            <button type="button" id="btn-prev-step" class="btn btn-secondary" title="Step backward one reference" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+              Previous Step
+            </button>
+            <button type="button" id="btn-next-step" class="btn btn-secondary" title="Step forward one reference" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+              Next Step
+            </button>
+            <button type="button" id="btn-play-pause" class="btn btn-secondary" title="Play or pause auto-advancement" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              Play
+            </button>
+            <button type="button" id="btn-run-all" class="btn btn-secondary" title="Execute entire reference sequence instantly" disabled>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 19 22 12 13 5 13 19"></polygon><polygon points="2 19 11 12 2 5 2 19"></polygon></svg>
+              Run Complete Simulation
+            </button>
+          </div>
+
+          <div class="button-group">
+            <button type="button" id="btn-reset" class="btn btn-danger" title="Clear and reset simulation state">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 2v6h6"></path><path d="M21 12A9 9 0 0 0 6 5.3L3 8"></path><path d="M21 22v-6h-6"></path><path d="M3 12a9 9 0 0 0 15 6.7l3-2.7"></path></svg>
+              Reset
+            </button>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <!-- Reference Stream Sequence Container -->
+    <section class="card" aria-labelledby="stream-title">
+      <h2 id="stream-title" class="card-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+        Reference String Sequence
+      </h2>
+      <p class="card-subtitle">Active and incoming memory page requests along the timeline.</p>
+      
+      <div id="reference-stream-container" class="stream-display-box" role="region" aria-label="Reference string stream">
+        <div class="empty-state">
+          <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          <div class="empty-state-text">No active simulation sequence loaded</div>
+          <div class="empty-state-subtext">Click "Start Simulation" above to initialize the reference string pipeline.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Memory Frames Matrix Section (User Requested Format) -->
+    <section class="memory-frames-card" id="memory-frames-section" aria-label="Memory Frames Matrix">
+      <div id="memory-frames-container" role="region" aria-label="Memory Frames matrix visualization">
+        <div class="empty-state">
+          <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><line x1="12" y1="4" x2="12" y2="20"></line></svg>
+          <div class="empty-state-text" style="color: #94a3b8;">Memory Frames Unallocated</div>
+          <div class="empty-state-subtext" style="color: #64748b;">Configure parameters and click "Start Simulation" to view the Memory Frames matrix.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Side-by-side Statistics & Explanation Grid -->
+    <div class="vis-grid">
+      <!-- Statistics & State Panel -->
+      <section class="card" aria-labelledby="stats-title">
+        <h2 id="stats-title" class="card-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+          Real-time Statistics
+        </h2>
+        <p class="card-subtitle">Cumulative simulation metrics and cache performance.</p>
+
+        <div class="stats-grid" id="stats-container">
+          <div class="stat-card">
+            <span class="stat-label">Total Requests</span>
+            <span class="stat-value" id="stat-total-requests">--</span>
+          </div>
+          <div class="stat-card stat-hit">
+            <span class="stat-label">Page Hits</span>
+            <span class="stat-value" id="stat-hits">--</span>
+          </div>
+          <div class="stat-card stat-fault">
+            <span class="stat-label">Page Faults</span>
+            <span class="stat-value" id="stat-faults">--</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Hit Ratio</span>
+            <span class="stat-value" id="stat-hit-ratio">--%</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Fault Ratio</span>
+            <span class="stat-value" id="stat-fault-ratio">--%</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Current Step</span>
+            <span class="stat-value" id="stat-current-step">0 / 0</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step Explanation & Replacement Decision Container -->
+      <section class="card" aria-labelledby="explanation-title">
+        <h2 id="explanation-title" class="card-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          Step Explanation &amp; Replacement Logic
+        </h2>
+        <p class="card-subtitle">Explanatory reasoning behind each hit, fault, or victim frame selection.</p>
+
+        <div id="explanation-container" class="explanation-box" role="status" aria-live="polite">
+          <div class="empty-state">
+            <div class="empty-state-text">No active step loaded</div>
+            <div class="empty-state-subtext">Decision details will display here as you navigate through each step of the simulation.</div>
+          </div>
+        </div>
+    </div>
+
+    <!-- Educational & Learning Section -->
+    <section class="card" id="learning-section" aria-labelledby="learning-title">
+      <h2 id="learning-title" class="card-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        Principles of Operating Systems — Educational Guide
+      </h2>
+      <p class="card-subtitle">Core concepts of Virtual Memory and Page Replacement Algorithms.</p>
+
+      <div class="educational-section">
+        <article class="edu-card">
+          <h3>Virtual Memory &amp; Paging</h3>
+          <p>Virtual memory separates user logical memory from physical memory, enabling execution of processes that may not be completely in memory.</p>
+          <ul>
+            <li><strong>Page:</strong> Fixed-size block of logical memory.</li>
+            <li><strong>Frame:</strong> Fixed-size block of physical memory (RAM).</li>
+            <li><strong>Page Hit:</strong> Requested page already resides in a frame.</li>
+            <li><strong>Page Fault:</strong> Requested page is not present in physical frames and must be fetched from backing store.</li>
+          </ul>
+        </article>
+
+        <article class="edu-card">
+          <h3>FIFO (First-In, First-Out)</h3>
+          <p>The simplest page-replacement algorithm. When a page must be replaced, the oldest page (the one brought into memory first) is chosen as the victim.</p>
+          <ul>
+            <li>Managed via a FIFO queue of frame arrivals.</li>
+            <li>Easy to implement and low overhead.</li>
+            <li>Subject to <em>Belady's Anomaly</em> (more frames may result in more page faults).</li>
+          </ul>
+        </article>
+
+        <article class="edu-card">
+          <h3>LRU (Least Recently Used)</h3>
+          <p>Replaces the page that has not been referenced for the longest period of time. Approximates optimal replacement by looking into the recent past.</p>
+          <ul>
+            <li>Based on the principle of temporal locality.</li>
+            <li>Immune to Belady's Anomaly (stack algorithm).</li>
+            <li>Requires hardware or timestamp tracking support.</li>
+          </ul>
+        </article>
+
+        <article class="edu-card">
+          <h3>Optimal Algorithm (OPT / Belady's)</h3>
+          <p>Replaces the page that will not be used for the longest period of time in the future. Guarantees the lowest possible page fault rate.</p>
+          <ul>
+            <li>Requires future knowledge of reference strings.</li>
+            <li>Used primarily as a theoretical benchmark for evaluation.</li>
+            <li>Immune to Belady's Anomaly.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <!-- App Footer -->
+  <footer class="app-footer">
+    <p>&copy; Principles of Operating Systems Project &mdash; The Hyper-Visual Virtual Memory &amp; Page Replacement Virtualizer</p>
+  </footer>
+
+  <!-- Native JavaScript Module -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

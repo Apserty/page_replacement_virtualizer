@@ -1,0 +1,9 @@
+{
+  "name": "virtual-memory-virtualizer",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "The Hyper-Visual Virtual Memory & Page Replacement Virtualizer",
+  "scripts": {
+    "test": "node tests/algorithms.test.js"
+  }
+}
