@@ -195,20 +195,83 @@
         </div>
       </section>
 
-      <!-- Step Explanation & Replacement Decision Container -->
-      <section class="card" aria-labelledby="explanation-title">
-        <h2 id="explanation-title" class="card-title">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-          Step Explanation &amp; Replacement Logic
-        </h2>
-        <p class="card-subtitle">Explanatory reasoning behind each hit, fault, or victim frame selection.</p>
+      <!-- Step Explanation & Replacement Decision Container with Audio Tutor -->
+      <section class="card" aria-labelledby="explanation-title" id="audio-tutor-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.35rem;">
+          <h2 id="explanation-title" class="card-title" style="margin-bottom: 0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+            Audio Tutor — Page Replacement Explainer
+          </h2>
+          <span id="audio-tutor-status-badge" class="audio-status-badge status-ready" title="Audio Tutor status">
+            <span class="status-dot"></span>
+            <span id="audio-tutor-status-text">Audio Ready</span>
+          </span>
+        </div>
+        <p class="card-subtitle">Real-time educational text-to-speech explanations of simulation events and replacement decisions.</p>
 
+        <!-- Audio Tutor Controls Toolbar -->
+        <div class="audio-tutor-toolbar">
+          <div class="audio-tutor-row">
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+              <span id="audio-event-badge" class="badge-neutral">Initial State</span>
+              <span id="audio-step-badge" class="audio-step-badge">Step 0 / 0</span>
+            </div>
+            <div class="audio-settings-group">
+              <label for="audio-voice-select" class="sr-only">Voice</label>
+              <select id="audio-voice-select" class="form-select audio-select" title="Select narration voice">
+                <option value="0">Default Voice</option>
+              </select>
+              <label for="audio-speed-select" class="sr-only">Speed</label>
+              <select id="audio-speed-select" class="form-select audio-select audio-speed-select" title="Adjust narration speed">
+                <option value="0.75">0.75x</option>
+                <option value="0.92">0.92x</option>
+                <option value="1.0" selected>1.0x (Default)</option>
+                <option value="1.25">1.25x</option>
+                <option value="1.5">1.5x</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="audio-tutor-actions">
+            <div class="button-group">
+              <button type="button" id="btn-audio-speak" class="btn btn-secondary btn-sm" title="Speak current step explanation" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                Play Explanation
+              </button>
+              <button type="button" id="btn-audio-pause-resume" class="btn btn-secondary btn-sm" title="Pause or resume narration" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                Pause
+              </button>
+              <button type="button" id="btn-audio-stop" class="btn btn-secondary btn-sm" title="Stop current narration" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"></rect></svg>
+                Stop
+              </button>
+              <button type="button" id="btn-audio-replay" class="btn btn-secondary btn-sm" title="Replay current step explanation from beginning" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                Replay
+              </button>
+              <button type="button" id="btn-audio-mute" class="btn btn-secondary btn-sm" title="Mute or unmute audio narration">
+                <svg id="audio-mute-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                <span id="audio-mute-text">Mute</span>
+              </button>
+            </div>
+            <div>
+              <button type="button" id="btn-audio-narrate-all" class="btn btn-primary btn-sm" title="Narrate all simulation steps sequentially without visual re-animation" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+                Narrate All Steps
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Full Readable Explanation Display -->
         <div id="explanation-container" class="explanation-box" role="status" aria-live="polite">
           <div class="empty-state">
             <div class="empty-state-text">No active step loaded</div>
             <div class="empty-state-subtext">Decision details will display here as you navigate through each step of the simulation.</div>
           </div>
         </div>
+      </section>
     </div>
 
     <!-- Educational & Learning Section -->

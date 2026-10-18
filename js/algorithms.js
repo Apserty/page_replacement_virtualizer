@@ -10,58 +10,71 @@
  * - Optimal (Belady's Min Algorithm)
  */
 
-/**
- * @typedef {Object} SimulationStep
- * @property {number} stepIndex - 0-based step index in the reference stream.
- * @property {number} page - The referenced page number.
- * @property {boolean} isHit - True if page hit, false if page fault.
- * @property {Array<number|null>} frames - State of physical frames after this step.
- * @property {number|null} victimPage - Page evicted from memory, if any.
- * @property {number|null} victimFrameIndex - Frame slot from which victim was evicted (or allocated).
- * @property {string} reason - Human-readable explanation of the placement/replacement decision.
- */
-
-/**
- * @typedef {Object} SimulationResult
- * @property {string} algorithm - Name of algorithm ('FIFO', 'LRU', 'OPTIMAL').
- * @property {number[]} referenceString - Sequence of referenced pages.
- * @property {number} frameCount - Total physical frames allocated.
- * @property {number} totalRequests - Total count of page requests.
- * @property {number} totalHits - Total number of page hits.
- * @property {number} totalFaults - Total number of page faults.
- * @property {number} hitRatio - Hit percentage (0 - 100).
- * @property {number} faultRatio - Fault percentage (0 - 100).
- * @property {SimulationStep[]} steps - Chronological array of step snapshots.
- */
+import { generateStepExplanation } from './explanations.js';
 
 /**
  * First-In, First-Out (FIFO) Page Replacement Simulation
  *
  * @param {number[]} referenceString - Array of page numbers.
  * @param {number} frameCount - Number of allocated physical frames.
- * @returns {SimulationResult}
+ * @returns {Object} SimulationResult
  */
 export function simulateFIFO(referenceString, frameCount) {
   const frames = new Array(frameCount).fill(null);
   const fifoQueue = []; // tracks frame indices in order of arrival
+  const arrivalStepMap = new Map(); // frameIndex -> stepNumber (1-based)
   const steps = [];
   let totalHits = 0;
   let totalFaults = 0;
 
   referenceString.forEach((page, stepIndex) => {
+    const framesBefore = [...frames];
     const existingIndex = frames.indexOf(page);
 
     if (existingIndex !== -1) {
       // PAGE HIT
       totalHits++;
+      const stepExplanation = generateStepExplanation({
+        algorithm: 'FIFO',
+        referenceString,
+        frameCount,
+        stepIndex,
+        requestedPage: page,
+        framesBefore,
+        framesAfter: [...frames],
+        isHit: true,
+        eventType: 'HIT',
+        victimPage: null,
+        victimFrameIndex: existingIndex,
+        cumulativeHits: totalHits,
+        cumulativeFaults: totalFaults,
+        replacementMetadata: {
+          queuePosition: fifoQueue.indexOf(existingIndex) + 1
+        }
+      });
+
       steps.push({
         stepIndex,
         page,
         isHit: true,
+        eventType: 'HIT',
+        framesBefore,
         frames: [...frames],
         victimPage: null,
         victimFrameIndex: existingIndex,
-        reason: `Page ${page} is already present in Frame ${existingIndex}. (PAGE HIT)`
+        cumulativeHits: totalHits,
+        cumulativeFaults: totalFaults,
+        reason: stepExplanation.shortReason,
+        explanation: stepExplanation.displayText,
+        displayHtml: stepExplanation.displayHtml,
+        audioNarration: stepExplanation.audioNarration,
+        title: stepExplanation.eventTypeTitle,
+        stepTitle: stepExplanation.stepTitle,
+        eventTypeTitle: stepExplanation.eventTypeTitle,
+        sections: stepExplanation.sections,
+        replacementMetadata: {
+          queuePosition: fifoQueue.indexOf(existingIndex) + 1
+        }
       });
     } else {
       // PAGE FAULT
@@ -72,38 +85,109 @@ export function simulateFIFO(referenceString, frameCount) {
         // Empty frame slot available
         frames[emptyIndex] = page;
         fifoQueue.push(emptyIndex);
-        steps.push({
+        arrivalStepMap.set(emptyIndex, stepIndex + 1);
+
+        const stepExplanation = generateStepExplanation({
+          algorithm: 'FIFO',
+          referenceString,
+          frameCount,
           stepIndex,
-          page,
+          requestedPage: page,
+          framesBefore,
+          framesAfter: [...frames],
           isHit: false,
-          frames: [...frames],
+          eventType: 'FAULT_INITIAL',
           victimPage: null,
           victimFrameIndex: emptyIndex,
-          reason: `Page ${page} caused a PAGE FAULT. Allocated into empty Frame ${emptyIndex}.`
+          cumulativeHits: totalHits,
+          cumulativeFaults: totalFaults,
+          replacementMetadata: {
+            queuePosition: fifoQueue.length
+          }
         });
-      } else {
-        // Replacement required: oldest frame in fifoQueue is replaced
-        const victimFrameIndex = fifoQueue.shift();
-        const victimPage = frames[victimFrameIndex];
-        frames[victimFrameIndex] = page;
-        fifoQueue.push(victimFrameIndex);
 
         steps.push({
           stepIndex,
           page,
           isHit: false,
+          eventType: 'FAULT_INITIAL',
+          framesBefore,
+          frames: [...frames],
+          victimPage: null,
+          victimFrameIndex: emptyIndex,
+          cumulativeHits: totalHits,
+          cumulativeFaults: totalFaults,
+          reason: stepExplanation.shortReason,
+          explanation: stepExplanation.displayText,
+          displayHtml: stepExplanation.displayHtml,
+          audioNarration: stepExplanation.audioNarration,
+          title: stepExplanation.eventTypeTitle,
+          stepTitle: stepExplanation.stepTitle,
+          eventTypeTitle: stepExplanation.eventTypeTitle,
+          sections: stepExplanation.sections,
+          replacementMetadata: {
+            queuePosition: fifoQueue.length
+          }
+        });
+      } else {
+        // Replacement required: oldest frame in fifoQueue is replaced
+        const victimFrameIndex = fifoQueue.shift();
+        const victimPage = frames[victimFrameIndex];
+        const oldestArrivalStep = arrivalStepMap.get(victimFrameIndex);
+
+        frames[victimFrameIndex] = page;
+        fifoQueue.push(victimFrameIndex);
+        arrivalStepMap.set(victimFrameIndex, stepIndex + 1);
+
+        const stepExplanation = generateStepExplanation({
+          algorithm: 'FIFO',
+          referenceString,
+          frameCount,
+          stepIndex,
+          requestedPage: page,
+          framesBefore,
+          framesAfter: [...frames],
+          isHit: false,
+          eventType: 'FAULT_REPLACE',
+          victimPage,
+          victimFrameIndex,
+          cumulativeHits: totalHits,
+          cumulativeFaults: totalFaults,
+          replacementMetadata: {
+            oldestArrivalStep
+          }
+        });
+
+        steps.push({
+          stepIndex,
+          page,
+          isHit: false,
+          eventType: 'FAULT_REPLACE',
+          framesBefore,
           frames: [...frames],
           victimPage,
           victimFrameIndex,
-          reason: `Page ${page} caused a PAGE FAULT. Frames full. Evicted oldest Page ${victimPage} from Frame ${victimFrameIndex} (FIFO order).`
+          cumulativeHits: totalHits,
+          cumulativeFaults: totalFaults,
+          reason: stepExplanation.shortReason,
+          explanation: stepExplanation.displayText,
+          displayHtml: stepExplanation.displayHtml,
+          audioNarration: stepExplanation.audioNarration,
+          title: stepExplanation.eventTypeTitle,
+          stepTitle: stepExplanation.stepTitle,
+          eventTypeTitle: stepExplanation.eventTypeTitle,
+          sections: stepExplanation.sections,
+          replacementMetadata: {
+            oldestArrivalStep
+          }
         });
       }
     }
   });
 
   const totalRequests = referenceString.length;
-  const hitRatio = totalRequests > 0 ? Number(((totalHits / totalRequests) * 100).toFixed(1)) : 0;
-  const faultRatio = totalRequests > 0 ? Number(((totalFaults / totalRequests) * 100).toFixed(1)) : 0;
+  const hitRatio = totalRequests > 0 ? Number(((totalHits / totalRequests) * 100).toFixed(2)) : 0;
+  const faultRatio = totalRequests > 0 ? Number(((totalFaults / totalRequests) * 100).toFixed(2)) : 0;
 
   return {
     algorithm: 'FIFO',
@@ -123,30 +207,65 @@ export function simulateFIFO(referenceString, frameCount) {
  *
  * @param {number[]} referenceString - Array of page numbers.
  * @param {number} frameCount - Number of allocated physical frames.
- * @returns {SimulationResult}
+ * @returns {Object} SimulationResult
  */
 export function simulateLRU(referenceString, frameCount) {
   const frames = new Array(frameCount).fill(null);
-  const lastUsedMap = new Map(); // page -> last referenced step index
+  const lastUsedMap = new Map(); // page -> last referenced step index (0-based)
   const steps = [];
   let totalHits = 0;
   let totalFaults = 0;
 
   referenceString.forEach((page, stepIndex) => {
+    const framesBefore = [...frames];
     const existingIndex = frames.indexOf(page);
 
     if (existingIndex !== -1) {
       // PAGE HIT
       totalHits++;
       lastUsedMap.set(page, stepIndex);
+
+      const stepExplanation = generateStepExplanation({
+        algorithm: 'LRU',
+        referenceString,
+        frameCount,
+        stepIndex,
+        requestedPage: page,
+        framesBefore,
+        framesAfter: [...frames],
+        isHit: true,
+        eventType: 'HIT',
+        victimPage: null,
+        victimFrameIndex: existingIndex,
+        cumulativeHits: totalHits,
+        cumulativeFaults: totalFaults,
+        replacementMetadata: {
+          lastUsedStep: stepIndex + 1
+        }
+      });
+
       steps.push({
         stepIndex,
         page,
         isHit: true,
+        eventType: 'HIT',
+        framesBefore,
         frames: [...frames],
         victimPage: null,
         victimFrameIndex: existingIndex,
-        reason: `Page ${page} is already in Frame ${existingIndex}. (PAGE HIT - Last used step updated to ${stepIndex + 1})`
+        cumulativeHits: totalHits,
+        cumulativeFaults: totalFaults,
+        reason: stepExplanation.shortReason,
+        explanation: stepExplanation.displayText,
+        displayHtml: stepExplanation.displayHtml,
+        audioNarration: stepExplanation.audioNarration,
+        title: stepExplanation.eventTypeTitle,
+        stepTitle: stepExplanation.stepTitle,
+        eventTypeTitle: stepExplanation.eventTypeTitle,
+        sections: stepExplanation.sections,
+        replacementMetadata: {
+          lastUsedStep: stepIndex + 1
+        }
       });
     } else {
       // PAGE FAULT
@@ -157,14 +276,48 @@ export function simulateLRU(referenceString, frameCount) {
         // Empty frame slot available
         frames[emptyIndex] = page;
         lastUsedMap.set(page, stepIndex);
+
+        const stepExplanation = generateStepExplanation({
+          algorithm: 'LRU',
+          referenceString,
+          frameCount,
+          stepIndex,
+          requestedPage: page,
+          framesBefore,
+          framesAfter: [...frames],
+          isHit: false,
+          eventType: 'FAULT_INITIAL',
+          victimPage: null,
+          victimFrameIndex: emptyIndex,
+          cumulativeHits: totalHits,
+          cumulativeFaults: totalFaults,
+          replacementMetadata: {
+            lastUsedStep: stepIndex + 1
+          }
+        });
+
         steps.push({
           stepIndex,
           page,
           isHit: false,
+          eventType: 'FAULT_INITIAL',
+          framesBefore,
           frames: [...frames],
           victimPage: null,
           victimFrameIndex: emptyIndex,
-          reason: `Page ${page} caused a PAGE FAULT. Loaded into empty Frame ${emptyIndex}.`
+          cumulativeHits: totalHits,
+          cumulativeFaults: totalFaults,
+          reason: stepExplanation.shortReason,
+          explanation: stepExplanation.displayText,
+          displayHtml: stepExplanation.displayHtml,
+          audioNarration: stepExplanation.audioNarration,
+          title: stepExplanation.eventTypeTitle,
+          stepTitle: stepExplanation.stepTitle,
+          eventTypeTitle: stepExplanation.eventTypeTitle,
+          sections: stepExplanation.sections,
+          replacementMetadata: {
+            lastUsedStep: stepIndex + 1
+          }
         });
       } else {
         // Replacement required: find frame whose page has minimum lastUsed step
@@ -184,22 +337,55 @@ export function simulateLRU(referenceString, frameCount) {
         frames[victimFrameIndex] = page;
         lastUsedMap.set(page, stepIndex);
 
+        const stepExplanation = generateStepExplanation({
+          algorithm: 'LRU',
+          referenceString,
+          frameCount,
+          stepIndex,
+          requestedPage: page,
+          framesBefore,
+          framesAfter: [...frames],
+          isHit: false,
+          eventType: 'FAULT_REPLACE',
+          victimPage,
+          victimFrameIndex,
+          cumulativeHits: totalHits,
+          cumulativeFaults: totalFaults,
+          replacementMetadata: {
+            oldestAccessStep: oldestStep + 1
+          }
+        });
+
         steps.push({
           stepIndex,
           page,
           isHit: false,
+          eventType: 'FAULT_REPLACE',
+          framesBefore,
           frames: [...frames],
           victimPage,
           victimFrameIndex,
-          reason: `Page ${page} caused a PAGE FAULT. Frames full. Evicted Page ${victimPage} from Frame ${victimFrameIndex} (least recently referenced at step ${oldestStep + 1}).`
+          cumulativeHits: totalHits,
+          cumulativeFaults: totalFaults,
+          reason: stepExplanation.shortReason,
+          explanation: stepExplanation.displayText,
+          displayHtml: stepExplanation.displayHtml,
+          audioNarration: stepExplanation.audioNarration,
+          title: stepExplanation.eventTypeTitle,
+          stepTitle: stepExplanation.stepTitle,
+          eventTypeTitle: stepExplanation.eventTypeTitle,
+          sections: stepExplanation.sections,
+          replacementMetadata: {
+            oldestAccessStep: oldestStep + 1
+          }
         });
       }
     }
   });
 
   const totalRequests = referenceString.length;
-  const hitRatio = totalRequests > 0 ? Number(((totalHits / totalRequests) * 100).toFixed(1)) : 0;
-  const faultRatio = totalRequests > 0 ? Number(((totalFaults / totalRequests) * 100).toFixed(1)) : 0;
+  const hitRatio = totalRequests > 0 ? Number(((totalHits / totalRequests) * 100).toFixed(2)) : 0;
+  const faultRatio = totalRequests > 0 ? Number(((totalFaults / totalRequests) * 100).toFixed(2)) : 0;
 
   return {
     algorithm: 'LRU',
@@ -219,7 +405,7 @@ export function simulateLRU(referenceString, frameCount) {
  *
  * @param {number[]} referenceString - Array of page numbers.
  * @param {number} frameCount - Number of allocated physical frames.
- * @returns {SimulationResult}
+ * @returns {Object} SimulationResult
  */
 export function simulateOptimal(referenceString, frameCount) {
   const frames = new Array(frameCount).fill(null);
@@ -228,19 +414,47 @@ export function simulateOptimal(referenceString, frameCount) {
   let totalFaults = 0;
 
   referenceString.forEach((page, stepIndex) => {
+    const framesBefore = [...frames];
     const existingIndex = frames.indexOf(page);
 
     if (existingIndex !== -1) {
       // PAGE HIT
       totalHits++;
+      const stepExplanation = generateStepExplanation({
+        algorithm: 'OPTIMAL',
+        referenceString,
+        frameCount,
+        stepIndex,
+        requestedPage: page,
+        framesBefore,
+        framesAfter: [...frames],
+        isHit: true,
+        eventType: 'HIT',
+        victimPage: null,
+        victimFrameIndex: existingIndex,
+        cumulativeHits: totalHits,
+        cumulativeFaults: totalFaults
+      });
+
       steps.push({
         stepIndex,
         page,
         isHit: true,
+        eventType: 'HIT',
+        framesBefore,
         frames: [...frames],
         victimPage: null,
         victimFrameIndex: existingIndex,
-        reason: `Page ${page} is already in Frame ${existingIndex}. (PAGE HIT)`
+        cumulativeHits: totalHits,
+        cumulativeFaults: totalFaults,
+        reason: stepExplanation.shortReason,
+        explanation: stepExplanation.displayText,
+        displayHtml: stepExplanation.displayHtml,
+        audioNarration: stepExplanation.audioNarration,
+        title: stepExplanation.eventTypeTitle,
+        stepTitle: stepExplanation.stepTitle,
+        eventTypeTitle: stepExplanation.eventTypeTitle,
+        sections: stepExplanation.sections
       });
     } else {
       // PAGE FAULT
@@ -250,19 +464,48 @@ export function simulateOptimal(referenceString, frameCount) {
       if (emptyIndex !== -1) {
         // Empty frame slot available
         frames[emptyIndex] = page;
+
+        const stepExplanation = generateStepExplanation({
+          algorithm: 'OPTIMAL',
+          referenceString,
+          frameCount,
+          stepIndex,
+          requestedPage: page,
+          framesBefore,
+          framesAfter: [...frames],
+          isHit: false,
+          eventType: 'FAULT_INITIAL',
+          victimPage: null,
+          victimFrameIndex: emptyIndex,
+          cumulativeHits: totalHits,
+          cumulativeFaults: totalFaults
+        });
+
         steps.push({
           stepIndex,
           page,
           isHit: false,
+          eventType: 'FAULT_INITIAL',
+          framesBefore,
           frames: [...frames],
           victimPage: null,
           victimFrameIndex: emptyIndex,
-          reason: `Page ${page} caused a PAGE FAULT. Loaded into empty Frame ${emptyIndex}.`
+          cumulativeHits: totalHits,
+          cumulativeFaults: totalFaults,
+          reason: stepExplanation.shortReason,
+          explanation: stepExplanation.displayText,
+          displayHtml: stepExplanation.displayHtml,
+          audioNarration: stepExplanation.audioNarration,
+          title: stepExplanation.eventTypeTitle,
+          stepTitle: stepExplanation.stepTitle,
+          eventTypeTitle: stepExplanation.eventTypeTitle,
+          sections: stepExplanation.sections
         });
       } else {
         // Replacement required: find frame whose page will not be used for longest time in future
         let victimFrameIndex = 0;
         let furthestNextUse = -1;
+        let ties = [];
 
         for (let i = 0; i < frameCount; i++) {
           const residentPage = frames[i];
@@ -278,6 +521,9 @@ export function simulateOptimal(referenceString, frameCount) {
           if (nextUse > furthestNextUse) {
             furthestNextUse = nextUse;
             victimFrameIndex = i;
+            ties = [i];
+          } else if (nextUse === furthestNextUse) {
+            ties.push(i);
           }
         }
 
@@ -285,25 +531,64 @@ export function simulateOptimal(referenceString, frameCount) {
         frames[victimFrameIndex] = page;
 
         const nextUseDesc = furthestNextUse === Infinity 
-          ? 'not referenced again in future' 
-          : `not referenced until step ${furthestNextUse + 1}`;
+          ? 'it is never referenced again in the future reference string' 
+          : `its next reference is at Step ${furthestNextUse + 1}, which is furthest in the future`;
+
+        const tieBreaker = ties.length > 1 ? 'lowest frame index chosen as tie-breaker' : null;
+
+        const stepExplanation = generateStepExplanation({
+          algorithm: 'OPTIMAL',
+          referenceString,
+          frameCount,
+          stepIndex,
+          requestedPage: page,
+          framesBefore,
+          framesAfter: [...frames],
+          isHit: false,
+          eventType: 'FAULT_REPLACE',
+          victimPage,
+          victimFrameIndex,
+          cumulativeHits: totalHits,
+          cumulativeFaults: totalFaults,
+          replacementMetadata: {
+            furthestNextUse,
+            nextUseDesc,
+            tieBreaker
+          }
+        });
 
         steps.push({
           stepIndex,
           page,
           isHit: false,
+          eventType: 'FAULT_REPLACE',
+          framesBefore,
           frames: [...frames],
           victimPage,
           victimFrameIndex,
-          reason: `Page ${page} caused a PAGE FAULT. Frames full. Evicted Page ${victimPage} from Frame ${victimFrameIndex} (${nextUseDesc}).`
+          cumulativeHits: totalHits,
+          cumulativeFaults: totalFaults,
+          reason: stepExplanation.shortReason,
+          explanation: stepExplanation.displayText,
+          displayHtml: stepExplanation.displayHtml,
+          audioNarration: stepExplanation.audioNarration,
+          title: stepExplanation.eventTypeTitle,
+          stepTitle: stepExplanation.stepTitle,
+          eventTypeTitle: stepExplanation.eventTypeTitle,
+          sections: stepExplanation.sections,
+          replacementMetadata: {
+            furthestNextUse,
+            nextUseDesc,
+            tieBreaker
+          }
         });
       }
     }
   });
 
   const totalRequests = referenceString.length;
-  const hitRatio = totalRequests > 0 ? Number(((totalHits / totalRequests) * 100).toFixed(1)) : 0;
-  const faultRatio = totalRequests > 0 ? Number(((totalFaults / totalRequests) * 100).toFixed(1)) : 0;
+  const hitRatio = totalRequests > 0 ? Number(((totalHits / totalRequests) * 100).toFixed(2)) : 0;
+  const faultRatio = totalRequests > 0 ? Number(((totalFaults / totalRequests) * 100).toFixed(2)) : 0;
 
   return {
     algorithm: 'OPTIMAL',
@@ -324,7 +609,7 @@ export function simulateOptimal(referenceString, frameCount) {
  * @param {string} algorithm - 'FIFO' | 'LRU' | 'OPTIMAL'
  * @param {number[]} referenceString - Sequence of page numbers.
  * @param {number} frameCount - Number of physical frames.
- * @returns {SimulationResult}
+ * @returns {Object} SimulationResult
  */
 export function runPageReplacement(algorithm, referenceString, frameCount) {
   const normAlgo = (algorithm || '').toUpperCase();

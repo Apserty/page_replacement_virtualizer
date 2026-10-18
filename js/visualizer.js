@@ -82,18 +82,21 @@ export function renderReferenceStream(container, referenceString, currentStepInd
  *     Empty/Black: Unallocated slot
  * - Bottom row: Hit / Fault status badges
  * 
+ * Supports interactive inspection: clicking any historical step highlights that step
+ * and displays its explanation and audio narration independently.
+ * 
  * @param {HTMLElement} container - The DOM container for frames.
  * @param {number} frameCount - Total physical frame slots.
  * @param {Array<number|null>} frames - Current contents of frames.
  * @param {Object|null} highlightInfo - Info about recent hit/fault/replacement.
- * @param {Object|null} matrixData - Full timeline data { referenceString, steps, currentStepIndex }
+ * @param {Object|null} matrixData - Full timeline data { referenceString, steps, currentStepIndex, onStepClick }
  */
 export function renderMemoryFrames(container, frameCount, frames = [], highlightInfo = null, matrixData = null) {
   if (!container) return;
 
   // When timeline matrixData is provided, render the full 2D timeline matrix
   if (matrixData && matrixData.referenceString && matrixData.referenceString.length > 0) {
-    const { referenceString, steps = [], currentStepIndex = -1 } = matrixData;
+    const { referenceString, steps = [], currentStepIndex = -1, onStepClick = null } = matrixData;
 
     container.innerHTML = `
       <div class="matrix-title">Memory Frames</div>
@@ -135,7 +138,7 @@ export function renderMemoryFrames(container, frameCount, frames = [], highlight
     topRefHeader.textContent = 'Ref';
     headerCol.appendChild(topRefHeader);
 
-    // Frame slots F0, F1, F2... (White rounded blocks matching screenshot)
+    // Frame slots F0, F1, F2... (White rounded blocks)
     for (let f = 0; f < frameCount; f++) {
       const headerCell = document.createElement('div');
       headerCell.className = 'matrix-header-cell';
@@ -157,8 +160,24 @@ export function renderMemoryFrames(container, frameCount, frames = [], highlight
     referenceString.forEach((page, c) => {
       const col = document.createElement('div');
       col.className = 'matrix-col';
+      col.dataset.stepIndex = c;
+      col.setAttribute('role', 'button');
+      col.setAttribute('tabindex', '0');
+      col.setAttribute('title', `Click to inspect Step ${c + 1}: Page ${page}`);
+
       if (c === currentStepIndex) {
         col.classList.add('matrix-col-active');
+      }
+
+      // Click / Keyboard handler to inspect historical step
+      if (onStepClick && steps[c]) {
+        col.addEventListener('click', () => onStepClick(c));
+        col.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onStepClick(c);
+          }
+        });
       }
 
       // Top reference request badge
@@ -173,8 +192,10 @@ export function renderMemoryFrames(container, frameCount, frames = [], highlight
       }
       col.appendChild(refCell);
 
-      const hasStepData = c <= currentStepIndex && steps[c];
-      const step = hasStepData ? steps[c] : null;
+      const hasStepData = steps[c] !== undefined && steps[c] !== null;
+      // If we are navigating sequentially and step has been reached
+      const isReached = c <= currentStepIndex || (matrixData.isCompleted && hasStepData);
+      const step = isReached && hasStepData ? steps[c] : null;
 
       // Frame rows (Frame 0 to Frame N-1)
       for (let f = 0; f < frameCount; f++) {
@@ -185,7 +206,7 @@ export function renderMemoryFrames(container, frameCount, frames = [], highlight
           const val = step.frames[f];
           cell.textContent = val;
 
-          // Color classification matching user screenshot
+          // Color classification
           if (step.victimFrameIndex === f) {
             if (step.isHit) {
               cell.classList.add('matrix-cell-green'); // Page Hit
@@ -270,37 +291,223 @@ export function renderStatistics(stats) {
 }
 
 /**
- * Displays the explanation log for the current step.
+ * Displays the complete pedagogical explanation for a simulation step.
  * 
  * @param {HTMLElement} container - The explanation DOM element.
- * @param {string} text - Explanation description.
- * @param {boolean|null} isHit - Whether current step is a hit or fault.
+ * @param {string|Object} stepOrText - Step object or explanation text.
+ * @param {boolean|null} [isHit] - Whether step is hit or fault (if string passed).
+ * @param {Object} [options] - Additional rendering options { isHistorical, title }.
  */
-export function renderExplanation(container, text, isHit = null) {
+export function renderExplanation(container, stepOrText, isHit = null, options = {}) {
   if (!container) return;
-  if (!text) {
+
+  if (!stepOrText) {
     container.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-text">No active step loaded</div>
-        <div class="empty-state-subtext">Decision details will display here as you navigate through each step of the simulation.</div>
+        <div class="empty-state-subtext">Decision details and spoken explanations will display here as you navigate through each step.</div>
       </div>
     `;
     return;
   }
 
-  const badge = isHit === true 
-    ? `<span class="badge-hit">PAGE HIT</span>` 
-    : isHit === false 
-      ? `<span class="badge-fault">PAGE FAULT</span>` 
-      : '';
+  let text = '';
+  let hitStatus = isHit;
+  let title = options.title || 'Step Detail';
+  let stepTitle = '';
+  let displayHtml = '';
+  let badgeClass = 'badge-neutral';
+  let isHistorical = !!options.isHistorical;
 
-  container.innerHTML = `
-    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
-      ${badge}
-      <span style="font-weight: 600; color: var(--text-navy-900);">Step Detail</span>
+  if (typeof stepOrText === 'object') {
+    const step = stepOrText;
+    text = step.explanation || step.reason || '';
+    displayHtml = step.displayHtml || '';
+    hitStatus = step.isHit;
+    title = step.eventTypeTitle || step.title || (step.isHit ? 'PAGE HIT' : (step.victimPage !== null ? 'PAGE FAULT — PAGE REPLACEMENT REQUIRED' : 'PAGE FAULT — EMPTY FRAME AVAILABLE'));
+    stepTitle = step.stepTitle || `Step ${step.stepIndex + 1}`;
+  } else {
+    text = stepOrText;
+  }
+
+  if (hitStatus === true) {
+    badgeClass = 'badge-hit';
+  } else if (hitStatus === false) {
+    badgeClass = 'badge-fault';
+  }
+
+  const historicalNotice = isHistorical 
+    ? `<span style="font-size: 0.75rem; background: #e0f2fe; color: #0369a1; padding: 0.2rem 0.55rem; border-radius: 4px; font-weight: 600;">Inspecting Historical Step</span>` 
+    : '';
+
+  const headerHtml = `
+    <div class="explanation-card-header">
+      <div style="display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap;">
+        ${stepTitle ? `<span class="step-title-text">${stepTitle}</span>` : ''}
+        <span class="${badgeClass}">${title}</span>
+        ${historicalNotice}
+      </div>
     </div>
-    <p style="color: var(--text-navy-700); line-height: 1.6;">${text}</p>
   `;
+
+  if (displayHtml) {
+    container.innerHTML = headerHtml + displayHtml;
+  } else {
+    container.innerHTML = `
+      ${headerHtml}
+      <p style="color: var(--text-navy-800); line-height: 1.65; font-size: 0.9rem; margin-bottom: 0.5rem;">${text}</p>
+    `;
+  }
+}
+
+/**
+ * Updates the Audio Tutor UI status badge, controls, and selectors.
+ * 
+ * @param {Object} audioState - State from AudioTutor
+ * @param {Object|null} currentStep - Current step data if available
+ * @param {number} totalSteps - Total steps in sequence
+ * @param {boolean} isHistorical - True if user is inspecting a step independently
+ */
+export function updateAudioTutorUI(audioState, currentStep = null, totalSteps = 0, isHistorical = false) {
+  const statusBadge = document.getElementById('audio-tutor-status-badge');
+  const statusText = document.getElementById('audio-tutor-status-text');
+  const eventBadge = document.getElementById('audio-event-badge');
+  const stepBadge = document.getElementById('audio-step-badge');
+  const voiceSelect = document.getElementById('audio-voice-select');
+  const btnSpeak = document.getElementById('btn-audio-speak');
+  const btnPauseResume = document.getElementById('btn-audio-pause-resume');
+  const btnStop = document.getElementById('btn-audio-stop');
+  const btnReplay = document.getElementById('btn-audio-replay');
+  const btnMute = document.getElementById('btn-audio-mute');
+  const muteText = document.getElementById('audio-mute-text');
+  const btnNarrateAll = document.getElementById('btn-audio-narrate-all');
+
+  // 1. Status Badge
+  if (statusBadge && statusText) {
+    statusBadge.className = 'audio-status-badge';
+    if (!audioState.isSupported) {
+      statusBadge.classList.add('status-unsupported');
+      statusText.textContent = 'Audio Unavailable';
+      statusBadge.title = 'Web Speech synthesis is not supported in this browser environment.';
+    } else if (audioState.isMuted) {
+      statusBadge.classList.add('status-muted');
+      statusText.textContent = 'Muted';
+    } else if (audioState.isSpeaking) {
+      statusBadge.classList.add('status-speaking');
+      statusText.textContent = audioState.isNarratingAll ? 'Narrating All...' : 'Speaking...';
+    } else if (audioState.isPaused) {
+      statusBadge.classList.add('status-paused');
+      statusText.textContent = 'Paused';
+    } else if (audioState.status === 'stopped') {
+      statusBadge.classList.add('status-stopped');
+      statusText.textContent = 'Stopped';
+    } else {
+      statusBadge.classList.add('status-ready');
+      statusText.textContent = 'Audio Ready';
+    }
+  }
+
+  // 2. Event Badge and Step Badge
+  if (currentStep) {
+    const stepNum = currentStep.stepIndex + 1;
+    if (stepBadge) {
+      stepBadge.textContent = isHistorical 
+        ? `Step ${stepNum} of ${totalSteps} (History)` 
+        : `Step ${stepNum} of ${totalSteps}`;
+    }
+
+    if (eventBadge) {
+      if (currentStep.isHit) {
+        eventBadge.className = 'badge-hit';
+        eventBadge.textContent = 'PAGE HIT';
+      } else if (currentStep.eventType === 'FAULT_INITIAL' || currentStep.victimPage === null) {
+        eventBadge.className = 'badge-hit';
+        eventBadge.style.backgroundColor = '#ecfdf5';
+        eventBadge.style.color = '#065f46';
+        eventBadge.textContent = 'PAGE FAULT — EMPTY FRAME AVAILABLE';
+      } else {
+        eventBadge.className = 'badge-fault';
+        eventBadge.textContent = 'PAGE FAULT — PAGE REPLACEMENT REQUIRED';
+      }
+    }
+  } else {
+    if (stepBadge) stepBadge.textContent = totalSteps > 0 ? `Step 0 of ${totalSteps}` : 'Step 0 / 0';
+    if (eventBadge) {
+      eventBadge.className = 'badge-neutral';
+      eventBadge.textContent = 'Initial State';
+    }
+  }
+
+  // 3. Voices selector population
+  if (voiceSelect && audioState.voices && audioState.voices.length > 0) {
+    // Populate if not yet populated or voice count changed (e.g. async cloud voices arrived)
+    if (voiceSelect.options.length <= 1 || voiceSelect.options.length !== audioState.voices.length) {
+      voiceSelect.innerHTML = '';
+      audioState.voices.forEach((v, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = `${v.name} (${v.lang})`;
+        if (idx === audioState.selectedVoiceIndex) {
+          opt.selected = true;
+        }
+        voiceSelect.appendChild(opt);
+      });
+      voiceSelect.value = String(audioState.selectedVoiceIndex);
+    } else if (voiceSelect.value !== String(audioState.selectedVoiceIndex)) {
+      voiceSelect.value = String(audioState.selectedVoiceIndex);
+    }
+  }
+
+  // 4. Action Buttons State Management
+  const hasStep = !!currentStep;
+  const isSpeaking = audioState.isSpeaking;
+  const isPaused = audioState.isPaused;
+  const isSupported = audioState.isSupported;
+
+  if (btnSpeak) btnSpeak.disabled = !hasStep || !isSupported;
+  if (btnReplay) btnReplay.disabled = !hasStep || !isSupported;
+  if (btnStop) btnStop.disabled = (!isSpeaking && !isPaused) || !isSupported;
+  
+  if (btnPauseResume) {
+    btnPauseResume.disabled = (!isSpeaking && !isPaused) || !isSupported;
+    if (isPaused) {
+      btnPauseResume.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+        Resume
+      `;
+    } else {
+      btnPauseResume.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+        Pause
+      `;
+    }
+  }
+
+  if (btnMute && muteText) {
+    muteText.textContent = audioState.isMuted ? 'Unmute' : 'Mute';
+    if (audioState.isMuted) {
+      btnMute.classList.add('btn-primary');
+      btnMute.classList.remove('btn-secondary');
+    } else {
+      btnMute.classList.remove('btn-primary');
+      btnMute.classList.add('btn-secondary');
+    }
+  }
+
+  if (btnNarrateAll) {
+    btnNarrateAll.disabled = totalSteps === 0 || !isSupported;
+    if (audioState.isNarratingAll) {
+      btnNarrateAll.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"></rect></svg>
+        Stop Narrating
+      `;
+    } else {
+      btnNarrateAll.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+        Narrate All Steps
+      `;
+    }
+  }
 }
 
 /**
@@ -335,7 +542,7 @@ export function resetVisualizer() {
     explanationContainer.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-text">No active step loaded</div>
-        <div class="empty-state-subtext">Decision details will display here as you navigate through each step of the simulation.</div>
+        <div class="empty-state-subtext">Decision details and spoken explanations will display here as you navigate through each step.</div>
       </div>
     `;
   }
