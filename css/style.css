@@ -481,6 +481,8 @@ body {
   border: 1px solid var(--border-color-light);
   border-radius: var(--radius-md);
   padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
 }
 
 .edu-card h3 {
@@ -504,10 +506,28 @@ body {
   padding-left: 1.25rem;
   font-size: 0.85rem;
   color: var(--text-navy-700);
+  margin-bottom: 0.75rem;
 }
 
 .edu-card li {
   margin-bottom: 0.35rem;
+}
+
+.edu-video-container {
+  margin-top: auto;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background-color: #0b1120;
+  border: 1px solid var(--border-color-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.edu-video {
+  width: 100%;
+  display: block;
+  border-radius: var(--radius-sm);
+  outline: none;
+  background-color: #000;
 }
 
 /* Footer */
